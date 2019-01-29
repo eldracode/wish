@@ -19,7 +19,7 @@ void shell_loop(){
 
     FILE *file = fopen("/etc/hostname","r");
     char *host_name;
-    host_name=(char *)malloc(10*sizeof(char));
+    host_name=(char *)malloc(15*sizeof(char));
     if(!file)
     exit(0);
     fscanf(file,"%s",host_name);
