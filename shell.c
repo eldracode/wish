@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<unistd.h>
+#include<sys/syscall.h>
 
 void shell_loop();
 char* get_stream();
