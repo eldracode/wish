@@ -1,28 +1,38 @@
+#include<unistd.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include<unistd.h>
-#include<sys/syscall.h>
+// #include<sys/syscall.h>
 #include"wishparser.h"
-#define MAXBUFFERLEN 200	//sufficient length
-#define MAXCMDSTACKSIZE 10 	//can be changed
+#include"stack.h"
+#define MAXBUFFERLEN 1000	//sufficient length
+#define MAXCMDSIZE 100 	//can be changed
+
+char* CMD[10];
+
+    char *stream;
 
 void shell_loop();
-char* get_stream();
+void get_stream();
+int scan0(char **argv);
+
 int main()
 {
     printf("Welcome to wish shell !\n");
     shell_loop();
 }
 
+int w_tokenizer(char *stream,char **argv);
+
+
 void shell_loop(){
 
-    char *stream;
    
     // Retrieving hostname from /etc/hostaname file
 
     FILE *file = fopen("/etc/hostname","r");
     char *host_name;
+    char* argv[MAXCMDSIZE];
     host_name=(char *)malloc(15*sizeof(char));
     if(!file)
     exit(0);
@@ -36,7 +46,29 @@ void shell_loop(){
     user_name=getlogin();
 
     // Printing promp which contains usename and hostname 
-    printf("%s(%s) =>  ",user_name,host_name);
+    
+    while(1){
+        /* code */
+    printf("%s [ %s ]  =>  ",user_name,host_name);
+
+    get_stream();
+    
+    w_tokenizer(stream,argv);
+    if(scan0(argv)==-1)
+    {
+        printf("LEVEL0_SYNTAX_ERR");
+    }
+
+    if(!strcmp(argv[0],"exit"))
+    {
+        printf("Die another day!!!\n");
+        exit(0);
+    }
+
+
+
+
+    }
     
     //stream = get_stream();
     //shell loops start here
@@ -54,12 +86,33 @@ void shell_loop(){
 
 }
 
-char* get_stream(){
+void get_stream(){
 	//this function would read the string buffer 
 	//will check if buffer has not exceeded the MAXBUFFERLEN that is 200 characters
 	//if not exceeded it will return the char pointer
 	//else it would return NULL pointer
+    stream=(char*)malloc(sizeof(char)*MAXBUFFERLEN);
+
+    fgets(stream,MAXBUFFERLEN,stdin);
     
 }
 
 
+int w_tokenizer(char* stream,char** argv)
+{
+    int i=1;
+    char* temp=NULL;
+    argv[0]=strtok(stream," ");
+    puts(argv[0]);
+    while((temp=strtok(NULL," "))!=NULL)
+    {
+        if(strcmp(temp,"\n"))argv[i]=temp;
+        puts(argv[i]);
+        i++;
+        
+    }
+ 
+    if(i!=1)return i-1;
+    else return -1;
+
+}
