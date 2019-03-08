@@ -2,6 +2,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<ctype.h>
 // #include<sys/syscall.h>
 #include"wishparser.h"
 #include"stack.h"
@@ -104,11 +105,53 @@ int w_tokenizer(char* stream,char** argv)
     char* temp=NULL;
     argv[0]=strtok(stream," ");
     puts(argv[0]);
+    char *quotedString;
+    int isStringStarted = 0;
+
     while((temp=strtok(NULL," "))!=NULL)
     {
-        if(strcmp(temp,"\n"))argv[i]=temp;
-        puts(argv[i]);
-        i++;
+        puts(stream);
+        if(strcmp(temp,"\n")){
+            
+            // if(temp[0] == '"' || isStringStarted == 1){ 
+                
+            //     isStringStarted = 1;
+            //     strcat(quotedString,temp);
+            //     strcat(quotedString," ");
+                
+            // }
+
+            // if(temp[strlen(temp)-1]=='"'){
+            //         isStringStarted = 0;
+            //         strcat(quotedString,temp);
+            //         strcat(argv[i],quotedString);
+            //         puts(argv[i]);
+            //         i++;
+            //     }
+
+            //else if(isStringStarted == 0){
+
+                if (temp[0]=='"'){
+                    strcat(argv[i],temp);
+                    while((temp=strtok(NULL," "))!=NULL){
+                    strcat(argv[i],temp);
+
+                        if(temp[strlen(temp)-1]=='"'){
+                            i++;
+                            puts(argv[i]);
+                            break;
+                            }
+                    }
+
+                }
+                else{
+            argv[i]=temp;
+             puts(argv[i]);
+                i++;
+            }
+            
+            }
+       
         
     }
  
@@ -116,3 +159,31 @@ int w_tokenizer(char* stream,char** argv)
     else return -1;
 
 }
+
+int isCMDseparator(char ch){
+    
+    if(ch != ';' && ch != '|' && ch != '>' && ch != '<'){
+        return 0;
+    }
+    return 1;
+
+}
+
+int scan0(char **argv){
+
+    /*
+    
+    argv[0] = . / _ / alphabet /  
+    
+    */
+   int i = 0 ;
+   if(argv[0][0] != '.' && argv[0][0] != '_' && !isalpha(argv[0][0]) ){
+       return -1;
+   }
+   while(argv[i] != NULL && isCMDseparator(argv[i][0])){
+       
+   }
+   
+   
+}
+
