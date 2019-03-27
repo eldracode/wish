@@ -13,7 +13,7 @@ A Project By -
 | ls       | lists the files of directory |
 | exit     | exits the shell              |
 
-###To run the shell as the default shell for your system
+### To run the shell as the default shell for your system
 
 ```
 cd
