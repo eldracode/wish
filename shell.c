@@ -1,21 +1,33 @@
+//******************************************** Header Files Inclusions ********************************************************************
+
 #include<unistd.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include<ctype.h>
-// #include<sys/syscall.h>
+#include<dirent.h> //for directory related syscalls
+#include<sys/syscall.h>
 #include"wishparser.h"
 #include"stack.h"
+
+//******************************************************************************************************************************************
+
+
 #define MAXBUFFERLEN 1000	//sufficient length
-#define MAXCMDSIZE 100 	//can be changed
-
 char* CMD[10];
+char stream[MAXBUFFERLEN];
 
-    char *stream;
+
+//******************************************** Function Declarations ********************************************************************
 
 void shell_loop();
 void get_stream();
+void list_files(char *directory);
+int w_tokenizer(char *stream,char **argv);
 int scan0(char **argv);
+
+//******************************************************************************************************************************************
+
 
 int main()
 {
@@ -23,17 +35,19 @@ int main()
     shell_loop();
 }
 
-int w_tokenizer(char *stream,char **argv);
-
 
 void shell_loop(){
 
    
     // Retrieving hostname from /etc/hostaname file
-
+  int MAXCMDSIZE = 100;
+  int length;
+   
     FILE *file = fopen("/etc/hostname","r");
     char *host_name;
     char* argv[MAXCMDSIZE];
+    //argv=(char **)malloc(100*sizeof(char*));
+
     host_name=(char *)malloc(15*sizeof(char));
     if(!file)
     exit(0);
@@ -53,7 +67,8 @@ void shell_loop(){
     printf("%s [ %s ]  =>  ",user_name,host_name);
 
     get_stream();
-    
+    length = strlen(stream);
+    stream[length-1] = '\0';
     w_tokenizer(stream,argv);
     if(scan0(argv)==-1)
     {
@@ -64,6 +79,10 @@ void shell_loop(){
     {
         printf("Die another day!!!\n");
         exit(0);
+    }
+ 
+    if(!strcmp(argv[0],"ls")){
+        list_files(argv[1]);       
     }
 
 
@@ -92,7 +111,7 @@ void get_stream(){
 	//will check if buffer has not exceeded the MAXBUFFERLEN that is 200 characters
 	//if not exceeded it will return the char pointer
 	//else it would return NULL pointer
-    stream=(char*)malloc(sizeof(char)*MAXBUFFERLEN);
+    //stream=(char*)malloc(sizeof(char)*MAXBUFFERLEN);
 
     fgets(stream,MAXBUFFERLEN,stdin);
     
@@ -101,63 +120,59 @@ void get_stream(){
 
 int w_tokenizer(char* stream,char** argv)
 {
-    int i=1;
-    char* temp=NULL;
-    argv[0]=strtok(stream," ");
-    puts(argv[0]);
-    char *quotedString;
-    int isStringStarted = 0;
+    
+	int length =strlen(stream);
+	char* curr=stream;
+	char* temp;
+	char* tok;
 
-    while((temp=strtok(NULL," "))!=NULL)
-    {
-        puts(stream);
-        if(strcmp(temp,"\n")){
-            
-            // if(temp[0] == '"' || isStringStarted == 1){ 
-                
-            //     isStringStarted = 1;
-            //     strcat(quotedString,temp);
-            //     strcat(quotedString," ");
-                
-            // }
+	char* del=" ";
 
-            // if(temp[strlen(temp)-1]=='"'){
-            //         isStringStarted = 0;
-            //         strcat(quotedString,temp);
-            //         strcat(argv[i],quotedString);
-            //         puts(argv[i]);
-            //         i++;
-            //     }
+	int index=-1;
+	int err=-1;
 
-            //else if(isStringStarted == 0){
+	do
+	{
+		while(*(curr) == ' '){
+			curr++;
+		}
+		
+		if(*(curr)!='\"'){
+			if(index==-1)tok=strtok_r(stream,del,&curr);
+			else tok=strtok_r(NULL,del,&curr);
+			index++;
+			argv[index]=tok;
+		}
+		//else curr++;
 
-                if (temp[0]=='"'){
-                    strcat(argv[i],temp);
-                    while((temp=strtok(NULL," "))!=NULL){
-                    strcat(argv[i],temp);
+		else
+		{
+			//int i = 0;
+			temp=curr+1;
+			do{
+				curr++;
+				
+			}while((*curr)!='\"'&&(*curr)!='\0');
 
-                        if(temp[strlen(temp)-1]=='"'){
-                            i++;
-                            puts(argv[i]);
-                            break;
-                            }
-                    }
-
-                }
-                else{
-            argv[i]=temp;
-             puts(argv[i]);
-                i++;
-            }
-            
-            }
-       
-        
-    }
- 
-    if(i!=1)return i-1;
-    else return -1;
-
+			index++;
+			if(*curr=='\"'){
+				*curr='\0';
+				//index++;
+				argv[index]=temp;
+				curr++;
+			}
+			else {
+				err++;
+				argv[index]=NULL;
+			}
+			
+		}
+	}while(argv[index]!=NULL);
+	
+	int i=0;
+	for(;argv[i]!=NULL;i++)puts(argv[i]);
+    
+        return 0;
 }
 
 int isCMDseparator(char ch){
@@ -187,3 +202,30 @@ int scan0(char **argv){
    
 }
 
+
+void list_files(char *directory){
+
+    struct dirent *di;
+    
+    // if(directory != NULL){
+    //     if(*directory == '~'){
+    //         directory = strcat("/home/eldraco",(directory+1));
+    //     }
+    // }
+
+    DIR *dr = directory==NULL  ? opendir(".") : opendir(directory);
+
+    if(dr == NULL){
+    printf("could not open the directory / directory not present");
+    return;
+    }
+
+
+    while((di = readdir(dr)) != NULL){
+        puts(di->d_name);
+    }
+    
+    
+
+
+}
