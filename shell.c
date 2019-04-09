@@ -1,14 +1,15 @@
 //******************************************** Header Files Inclusions ********************************************************************
 
-#include<unistd.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<ctype.h>
-#include<dirent.h> //for directory related syscalls
-#include<sys/syscall.h>
-#include"wishparser.h"
-#include"stack.h"
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <dirent.h> //for directory related syscalls
+#include <sys/syscall.h>
+#include "wishparser.h"
+#include "stack.h"
+#include "key.h"
 
 //******************************************************************************************************************************************
 
@@ -23,7 +24,6 @@ char stream[MAXBUFFERLEN];
 void shell_loop();
 void get_stream();
 void list_files(char *directory);
-int w_tokenizer(char *stream,char **argv);
 int scan0(char **argv);
 
 //******************************************************************************************************************************************
@@ -69,7 +69,7 @@ void shell_loop(){
     get_stream();
     length = strlen(stream);
     stream[length-1] = '\0';
-    w_tokenizer(stream,argv);
+    w_tokenizer(stream,argv,' ');
     if(scan0(argv)==-1)
     {
         printf("LEVEL0_SYNTAX_ERR");
@@ -90,20 +90,6 @@ void shell_loop(){
 
     }
     
-    //stream = get_stream();
-    //shell loops start here
-    //Loop:(rough outline)
-    //read string buffer to be parsed
-    //parse the string buffer
-    //parser code is in wishparser.c file
-    //compilation would be like
-    // gcc -o wishex wish.c wishparser.c
-    //initialize the command stack
-    //each command would be pushed after successful parsing 
-    //after each successful execution of a command 
-   	//command would be poped from command stack 
-    //and next command would be set in execution
-
 }
 
 void get_stream(){
@@ -118,62 +104,7 @@ void get_stream(){
 }
 
 
-int w_tokenizer(char* stream,char** argv)
-{
-    
-	int length =strlen(stream);
-	char* curr=stream;
-	char* temp;
-	char* tok;
 
-	char* del=" ";
-
-	int index=-1;
-	int err=-1;
-
-	do
-	{
-		while(*(curr) == ' '){
-			curr++;
-		}
-		
-		if(*(curr)!='\"'){
-			if(index==-1)tok=strtok_r(stream,del,&curr);
-			else tok=strtok_r(NULL,del,&curr);
-			index++;
-			argv[index]=tok;
-		}
-		//else curr++;
-
-		else
-		{
-			//int i = 0;
-			temp=curr+1;
-			do{
-				curr++;
-				
-			}while((*curr)!='\"'&&(*curr)!='\0');
-
-			index++;
-			if(*curr=='\"'){
-				*curr='\0';
-				//index++;
-				argv[index]=temp;
-				curr++;
-			}
-			else {
-				err++;
-				argv[index]=NULL;
-			}
-			
-		}
-	}while(argv[index]!=NULL);
-	
-	int i=0;
-	for(;argv[i]!=NULL;i++)puts(argv[i]);
-    
-        return 0;
-}
 
 int isCMDseparator(char ch){
     
@@ -206,7 +137,7 @@ int scan0(char **argv){
 void list_files(char *directory){
 
     struct dirent *di;
-    
+    // ~ = /home/$USER/ tried but not successful
     // if(directory != NULL){
     //     if(*directory == '~'){
     //         directory = strcat("/home/eldraco",(directory+1));
