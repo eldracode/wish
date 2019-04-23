@@ -5,5 +5,6 @@
         "unistd.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled",
-    "editor.fontLigatures": true
+    "editor.fontLigatures": true,
+    "editor.fontFamily": "'Droid Sans Mono', 'monospace', monospace, 'Droid Sans Fallback','Fira Code'"
 }

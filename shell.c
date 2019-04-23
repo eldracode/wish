@@ -1,14 +1,15 @@
 //******************************************** Header Files Inclusions ********************************************************************
 
-#include<unistd.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<ctype.h>
-#include<dirent.h> //for directory related syscalls
-#include<sys/syscall.h>
-#include<sys/types.h>
-#include<sys/wait.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <dirent.h> //for directory related syscalls
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <errno.h>
 //#include"wishparser.h"
 //#include"stack.h"
 //#include"queue.h"
@@ -34,8 +35,10 @@ int EXIT_STAT;
 void shell_loop();
 void get_stream();
 void list_files(char *directory);
-int w_tokenizer(char *stream,char **argv);
+int w_tokenizer(char *stream,char **argv,char regex);
 int scan0(char **argv);
+int contains(char*,char);
+int execpipe(char**,char**);
 
 //******************************************************************************************************************************************
 
@@ -70,8 +73,8 @@ void shell_loop(){
    
     
     int length;
-   
-    
+    char **pipeargs1,**pipeargs2;
+    int isPipe=0;
     
     char* argv[MAXCMDSIZE];
     //argv=(char **)malloc(100*sizeof(char*));
@@ -93,7 +96,15 @@ void shell_loop(){
     
     
     //converting user input to tokens
-    w_tokenizer(stream,argv);
+    if(contains(stream,'|')){
+        w_tokenizer(stream,argv,'|');
+        w_tokenizer(argv[0],pipeargs1,' ');
+        w_tokenizer(argv[1],pipeargs2,' ');
+        isPipe = 1;
+
+    }
+    else
+    w_tokenizer(stream,argv,' ');
     
     //checking syntax: a trivial check indeed
     if(scan0(argv)==-1)
@@ -106,8 +117,11 @@ void shell_loop(){
     
     else{
         
-    //below are the INTERNAL SHELL COMMANDS******************************************************************************************
-        if(!strcmp(argv[0],"exit")){
+    //below are the BUILTIN SHELL COMMANDS******************************************************************************************
+        if(isPipe){
+            execpipe(pipeargs1,pipeargs2);
+        }
+        else if(!strcmp(argv[0],"exit")){
             printf("Yippikaya Mr Falcon\n");
             exit(0);
         }
@@ -131,7 +145,7 @@ void shell_loop(){
                     }while(!WIFEXITED(EXIT_STAT)&&WIFSIGNALED(EXIT_STAT));
             }
             else{
-                printf("forking error!\n");
+                perror("forking error!\n");
             }
         }
     }
@@ -162,8 +176,46 @@ void get_stream(){
     
 }
 
+int contains(char* string , char regex){
+    int i=0;
+    for (;i<strlen(string);i++){
+        if(regex==*(string+i))
+        return 1;
+    }
+    return 0;
 
-int w_tokenizer(char* stream,char** argv)
+}
+
+int execpipe (char ** argv1, char ** argv2) {
+    int fds[2];
+    pipe(fds);
+    int i;
+    pid_t pid = fork();
+    if (pid == -1) { //error
+        char *error = strerror(errno);
+        printf("error fork!!\n");
+        return 1;
+    } 
+    if (pid == 0) { // child process
+        close(fds[1]);
+        dup2(fds[0], 0);
+        //close(fds[0]);
+        execvp(argv2[0], argv2); // run command AFTER pipe character in userinput
+        char *error = strerror(errno);
+        printf("unknown command\n");
+        return 0;
+    } else { // parent process
+        close(fds[0]);
+        dup2(fds[1], 1);
+        //close(fds[1]);
+        execvp(argv1[0], argv1); // run command BEFORE pipe character in userinput
+        char *error = strerror(errno);
+        printf("unknown command\n");
+        return 0;
+    }
+}
+
+int w_tokenizer(char* stream,char** argv,char regex)
 {
     
 	int length =strlen(stream);
@@ -178,7 +230,7 @@ int w_tokenizer(char* stream,char** argv)
 
 	do
 	{
-		while(*(curr) == ' '){
+		while(*(curr) == regex){
 			curr++;
 		}
 		
@@ -220,12 +272,12 @@ int w_tokenizer(char* stream,char** argv)
         return 0;
 }
 
-int isCMDseparator(char ch){
+char isCMDseparator(char ch){
     
     if(ch != ';' && ch != '|' && ch != '>' && ch != '<'){
-        return 0;
+        return ch;
     }
-    return 1;
+    return NULL;
 
 }
 
@@ -269,7 +321,6 @@ void list_files(char *directory){
     while((di = readdir(dr)) != NULL){
         puts(di->d_name);
     }
-    
     
 
 
