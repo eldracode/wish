@@ -11,7 +11,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 //#include"wishparser.h"
-//#include"stack.h"
+#include"stack.h"
 //#include"queue.h"
 
 //******************************************************************************************************************************************
@@ -19,6 +19,8 @@
 
 #define MAXBUFFERLEN 1000//sufficient length
 #define MAXCMDSIZE 100	//sufficient size of cmd queue array
+#define DIRSTCKSIZE 20  //
+#define PATHLEN 1000  //
 
 char *host_name;
 char *user_name;
@@ -28,22 +30,56 @@ char** CMD[10];//command queue array basically array of argv[]
 char stream[MAXBUFFERLEN];
 pid_t shell_PID;
 int EXIT_STAT;
+char PWD[1000];
+STACK DIRSTACK;
 
 
 //******************************************** Function Declarations ********************************************************************
-
+int wish_init();
 void shell_loop();
 void get_stream();
 void list_files(char *directory);
-int w_tokenizer(char *stream,char **argv,char regex);
+int w_tokenizer(char *stream,char **argv);
 int scan0(char **argv);
 int contains(char*,char);
 int execpipe(char**,char**);
+void changedir(char** argv);
 
 //******************************************************************************************************************************************
 
-void getprompt()
+/*void getprompt()
 {
+    // Retrieving hostname from /etc/hostaname file
+    FILE *file = fopen("/etc/hostname","r");
+    host_name=(char *)malloc(15*sizeof(char));
+    if(!file)
+    exit(0);
+    fscanf(file,"%s",host_name);
+    fclose(file);
+
+    // Retrieving username using getlogin() fron <unistd.h>
+    user_name=(char *)malloc(10*sizeof(char));
+    user_name=getlogin();
+}*/
+
+
+
+int main()
+{
+  //  printf("Welcome to wish shell !\n");
+    //a function to retreive hostname and user 
+    wish_init();
+    //getprompt();
+    shell_loop();
+
+}
+
+int wish_init()
+{
+    getcwd(PWD,PATHLEN);
+
+    init_stack(&DIRSTACK);
+    
     // Retrieving hostname from /etc/hostaname file
     FILE *file = fopen("/etc/hostname","r");
     host_name=(char *)malloc(15*sizeof(char));
@@ -57,21 +93,9 @@ void getprompt()
     user_name=getlogin();
 }
 
-
-
-int main()
+void shell_loop()
 {
-  //  printf("Welcome to wish shell !\n");
-    //a function to retreive hostname and user 
-    getprompt();
-    shell_loop();
-}
 
-
-void shell_loop(){
-
-   
-    
     int length;
     char **pipeargs1,**pipeargs2;
     int isPipe=0;
@@ -96,7 +120,7 @@ void shell_loop(){
     
     
     //converting user input to tokens
-    if(contains(stream,'|')){
+    /*if(contains(stream,'|')){
         w_tokenizer(stream,argv,'|');
         w_tokenizer(argv[0],pipeargs1,' ');
         w_tokenizer(argv[1],pipeargs2,' ');
@@ -104,7 +128,8 @@ void shell_loop(){
 
     }
     else
-    w_tokenizer(stream,argv,' ');
+    */
+    w_tokenizer(stream,argv);
     
     //checking syntax: a trivial check indeed
     if(scan0(argv)==-1)
@@ -118,16 +143,21 @@ void shell_loop(){
     else{
         
     //below are the BUILTIN SHELL COMMANDS******************************************************************************************
-        if(isPipe){
+        /*if(isPipe){
             execpipe(pipeargs1,pipeargs2);
-        }
-        else if(!strcmp(argv[0],"exit")){
+        }*/
+        //printf("i m no here\n");
+        if(!strcmp(argv[0],"exit")){
             printf("Yippikaya Mr Falcon\n");
             exit(0);
         }
  
         else if(!strcmp(argv[0],"ls")){
             list_files(argv[1]);       
+        }
+        else if(!strcmp(argv[0],"cd"))
+        {
+            changedir(argv);
         }
     
     
@@ -147,23 +177,10 @@ void shell_loop(){
             else{
                 perror("forking error!\n");
             }
-        }
+        } 
     }
-    //stream = get_stream();
-    //shell loops start here
-    //Loop:(rough outline)
-    //read string buffer to be parsed
-    //parse the string buffer
-    //parser code is in wishparser.c file
-    //compilation would be like
-    // gcc -o wishex wish.c wishparser.c
-    //initialize the command stack
-    //each command would be pushed after successful parsing 
-    //after each successful execution of a command 
-   	//command would be poped from command stack 
-    //and next command would be set in execution
-
 }
+
 }
 void get_stream(){
 	//this function would read the string buffer 
@@ -215,7 +232,7 @@ int execpipe (char ** argv1, char ** argv2) {
     }
 }
 
-int w_tokenizer(char* stream,char** argv,char regex)
+int w_tokenizer(char* stream,char** tokarr)
 {
     
 	int length =strlen(stream);
@@ -223,14 +240,14 @@ int w_tokenizer(char* stream,char** argv,char regex)
 	char* temp;
 	char* tok;
 
-	char* del=" ";
+	const char* del=" |;&&><";
 
 	int index=-1;
 	int err=-1;
 
 	do
 	{
-		while(*(curr) == regex){
+		while(*(curr) == ' '){
 			curr++;
 		}
 		
@@ -238,7 +255,7 @@ int w_tokenizer(char* stream,char** argv,char regex)
 			if(index==-1)tok=strtok_r(stream,del,&curr);
 			else tok=strtok_r(NULL,del,&curr);
 			index++;
-			argv[index]=tok;
+			tokarr[index]=tok;
 		}
 		//else curr++;
 
@@ -255,21 +272,21 @@ int w_tokenizer(char* stream,char** argv,char regex)
 			if(*curr=='\"'){
 				*curr='\0';
 				//index++;
-				argv[index]=temp;
+				tokarr[index]=temp;
 				curr++;
 			}
 			else {
 				err++;
-				argv[index]=NULL;
+				tokarr[index]=NULL;
 			}
 			
 		}
-	}while(argv[index]!=NULL);
+	}while(tokarr[index]!=NULL);
 	
 	//int i=0;
-	//for(;argv[i]!=NULL;i++)puts(argv[i]);
+	//for(;tokarr[i]!=NULL;i++)puts(tokarr[i]);
     
-        return 0;
+    return 0;
 }
 
 char isCMDseparator(char ch){
@@ -277,7 +294,7 @@ char isCMDseparator(char ch){
     if(ch != ';' && ch != '|' && ch != '>' && ch != '<'){
         return ch;
     }
-    return NULL;
+    return 0;
 
 }
 
@@ -292,10 +309,12 @@ int scan0(char **argv){
    if(argv[0][0] != '.' && argv[0][0] != '_' && !isalpha(argv[0][0]) ){
        return -1;
    }
-   while(argv[i] != NULL && isCMDseparator(argv[i][0])){
-       
-   }
+   /*while(argv[i] != NULL && isCMDseparator(argv[i][0])){
+        printf("scanning done...\n");    
+   }*/
    
+   return 0;
+
    
 }
 
@@ -325,3 +344,79 @@ void list_files(char *directory){
 
 
 }
+
+void changedir(char **argv)
+{
+    //char *temp;
+    int dir_found=0;
+    if(strlen(argv[1])>1){
+        if(argv[1][0]=='/')
+        {
+            
+            dir_found=chdir(argv[1]);
+            //getcwd(PWD,PATHLEN);
+        }
+        else
+        {
+            //push(&DIRSTACK,PWD);
+            strcat(PWD,"/");
+            strcat(PWD,argv[1]);
+            dir_found=chdir(PWD);
+        }
+    }
+    else if(strlen(argv[1])==1){
+        if(argv[1][0]=='-')
+        {
+        
+            if(DIRSTACK.top!=-1)dir_found=chdir(pop(&DIRSTACK));
+            else printf("No previous working directory!\n");
+            push(&DIRSTACK,PWD);
+            getcwd(PWD,PATHLEN);
+        }
+        else if(argv[1][0]=='~')
+        {
+            dir_found=chdir(getenv("HOME"));
+            push(&DIRSTACK,PWD);
+            getcwd(PWD,PATHLEN);
+        }
+        else if(argv[1][0]=='/')
+        {
+            dir_found=chdir(argv[1]);
+            push(&DIRSTACK,PWD);
+            getcwd(PWD,PATHLEN);
+        }
+        else if(argv[1][0]=='.')
+        {
+            push(&DIRSTACK,PWD);
+            strcat(PWD,"/");
+            strcat(PWD,argv[1]);
+            dir_found=chdir(PWD);
+            getcwd(PWD,PATHLEN);
+        }
+    }
+    if(dir_found==-1){
+        perror("Error:");
+    }
+    else if(dir_found==0){
+        push(&DIRSTACK,PWD);
+        getcwd(PWD,PATHLEN);
+    }
+    
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
