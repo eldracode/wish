@@ -1,27 +1,20 @@
 # wish
 
-A LInux Shell written in C
+A Linux Shell written in C
 
-A Project By -
+### To run the shell , open your terminal and type
 
-[Ayush](https://github.com/eldraco19)
-
-[Ayush Dwivedi](https://github.com/AyushOneironaut)
-
-##Builtins
-
-| Commands | Action                       |
-| -------- | ---------------------------- |
-| ls       | lists the files of directory |
-| exit     | exits the shell              |
+```
+gcc -o wish shell.c && ./wish
+```
 
 
-### To run the shell as the default shell for your system
+### To use the shell as the default shell for your system
 
 ```
 cd
 git clone https://github.com/eldraco19/wish.git
-gcc -o shell shell.c
-sudo "/home/$USER/wish/shell" >> /etc/shells
-chsh -s shell $USER
+gcc -o wish shell.c
+sudo echo "/home/$USER/wish/wish" >> /etc/shells
+chsh -s wish $USER
 ```
