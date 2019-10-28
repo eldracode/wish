@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include<readline/readline.h>
 #include"stack.h"
 
 
@@ -27,7 +28,7 @@ char *user_name;
 extern char** environ;
 //char* envp[]={"/bin:/usr/bin/"};
 char** CMD[10];//command queue array basically array of argv[]
-char stream[MAXBUFFERLEN];
+char *stream = NULL;
 pid_t shell_PID;
 int EXIT_STAT;
 char PWD[1000];
@@ -37,7 +38,7 @@ char cwd[PATHLEN];
 //******************************************** Function Declarations ********************************************************************
 int wish_init();
 void shell_loop();
-void get_stream();
+int get_stream();
 void list_files(char *directory);
 int w_tokenizer(char *stream,char **argv);
 int scan0(char **argv);
@@ -125,9 +126,11 @@ void shell_loop()
     
     }
     //getting user input 
-    get_stream();
-    length = strlen(stream);
-    stream[length-1] = '\0';
+	if (stream){ // stream already set, clear it
+		free(stream);
+		stream = NULL;
+	}
+    length  = get_stream();
     
     
     //converting user input to tokens
@@ -192,14 +195,13 @@ void shell_loop()
 }
 
 }
-void get_stream(){
-	//this function would read the string buffer 
-	//will check if buffer has not exceeded the MAXBUFFERLEN that is 200 characters
-	//if not exceeded it will return the char pointer
-	//else it would return NULL pointer
-    //stream=(char*)malloc(sizeof(char)*MAXBUFFERLEN);
-
-    fgets(stream,MAXBUFFERLEN,stdin);
+int get_stream(){
+	/* Reads input stream and saves it to stream global variable
+	   returns stream's length
+	   The caller must free() after use
+	*/
+	stream = readline(NULL);
+	return strlen(stream);
     
 }
 
