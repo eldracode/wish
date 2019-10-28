@@ -5,7 +5,7 @@ A Linux Shell written in C
 ### To run the shell , open your terminal and type
 
 ```
-gcc -o wish shell.c && ./wish
+make && ./wish
 ```
 
 
